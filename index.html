@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書</title>
+<style>
+  :root{
+    --navy:#1f3864;
+    --navy-light:#2e5395;
+    --blue:#3d6cb9;
+    --red:#c00000;
+    --red-bg:#fdeeee;
+    --amber:#b07c00;
+    --amber-bg:#fdf6e3;
+    --green:#2e6b34;
+    --green-bg:#ecf5ec;
+    --ink:#26303e;
+    --ink-soft:#5a6675;
+    --line:#dde4ee;
+    --bg:#f4f6fa;
+    --card:#ffffff;
+    --sidebar-w:272px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:24px}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Yu Gothic UI",Meiryo,system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);
+    font-size:15.5px;line-height:1.9;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- layout ---------- */
+  .wrap{display:flex;min-height:100vh}
+  .sidebar{
+    width:var(--sidebar-w);flex-shrink:0;
+    background:var(--navy);color:#fff;
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:28px 0 40px;
+  }
+  .main{flex:1;min-width:0;padding:40px 48px 96px}
+  .content{max-width:860px;margin:0 auto}
+
+  /* ---------- sidebar ---------- */
+  .sb-title{padding:0 22px 18px;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:14px}
+  .sb-title .logo{font-size:20px;font-weight:800;letter-spacing:.02em}
+  .sb-title .sub{font-size:11.5px;color:#b8c6e2;margin-top:4px}
+  .sb-group{font-size:11px;font-weight:700;color:#8fa3c8;letter-spacing:.12em;padding:16px 22px 6px}
+  .sidebar nav a{
+    display:block;color:#dbe4f5;font-size:13px;line-height:1.5;
+    padding:6px 22px 6px 22px;border-left:3px solid transparent;
+  }
+  .sidebar nav a:hover{background:rgba(255,255,255,.08);text-decoration:none;color:#fff}
+  .sidebar nav a.active{background:rgba(255,255,255,.12);border-left-color:#ffc93c;color:#fff;font-weight:600}
+  .sidebar nav a .mini{font-size:10px;font-weight:700;border-radius:3px;padding:1px 5px;margin-right:6px;vertical-align:1px}
+  .mini.crit{background:#ff6b6b;color:#fff}
+  .mini.warn{background:#ffc93c;color:#5c4500}
+  .mini.info{background:#9db4d8;color:#12233f}
+
+  /* mobile header */
+  .mobile-bar{display:none}
+
+  /* ---------- typography ---------- */
+  .hero{
+    background:linear-gradient(135deg,var(--navy) 0%,#2c4d8f 100%);
+    color:#fff;border-radius:14px;padding:38px 40px;margin-bottom:36px;
+    box-shadow:0 6px 24px rgba(31,56,100,.25);
+  }
+  .hero h1{font-size:27px;line-height:1.5;font-weight:800}
+  .hero .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;color:#ffd76a;margin-bottom:10px}
+  .hero p{margin-top:14px;font-size:14.5px;color:#e3eaf7}
+
+  h2.part{
+    font-size:23px;font-weight:800;color:var(--navy);
+    margin:64px 0 8px;padding-bottom:10px;border-bottom:3px solid var(--navy);
+  }
+  h3.sec{
+    font-size:18px;font-weight:700;color:var(--navy-light);
+    margin:40px 0 12px;padding-left:12px;border-left:5px solid var(--navy-light);
+    line-height:1.5;
+  }
+  p{margin:10px 0}
+  strong{color:var(--navy);font-weight:700}
+  ul.plain{margin:10px 0 14px;padding-left:0;list-style:none}
+  ul.plain li{
+    position:relative;padding-left:20px;margin:7px 0;
+  }
+  ul.plain li::before{
+    content:"";position:absolute;left:4px;top:.85em;
+    width:7px;height:7px;border-radius:50%;background:var(--navy-light);
+  }
+
+  /* ---------- badges ---------- */
+  .badge{display:inline-block;font-size:12px;font-weight:700;border-radius:20px;padding:2px 12px;white-space:nowrap}
+  .badge.crit{background:var(--red-bg);color:var(--red);border:1px solid #eec3c3}
+  .badge.warn{background:var(--amber-bg);color:var(--amber);border:1px solid #ecd9a0}
+  .badge.none{background:#eef1f6;color:var(--ink-soft);border:1px solid var(--line)}
+
+  /* ---------- overview table ---------- */
+  .tbl-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 2px 10px rgba(31,56,100,.08);margin:18px 0}
+  table.tbl{width:100%;border-collapse:collapse;background:var(--card);font-size:13.5px;min-width:640px}
+  table.tbl th{
+    background:var(--navy);color:#fff;font-weight:700;font-size:12.5px;
+    padding:11px 14px;text-align:left;white-space:nowrap;
+  }
+  table.tbl td{padding:11px 14px;border-top:1px solid var(--line);vertical-align:middle}
+  table.tbl tbody tr:nth-child(even){background:#f7f9fc}
+  table.tbl tbody tr:hover{background:#eef3fb}
+  table.tbl td.c{text-align:center}
+  table.tbl a{font-weight:700;color:var(--navy)}
+
+  /* ---------- alert cards ---------- */
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:30px 34px;margin:26px 0;box-shadow:0 2px 10px rgba(31,56,100,.06);
+  }
+  .card h3.alert-name{
+    font-size:19px;font-weight:800;color:var(--navy);margin:0 0 4px;line-height:1.5;
+  }
+  .card .lead{font-size:13.5px;color:var(--ink-soft);margin:4px 0 16px}
+  .spec{
+    display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px;
+  }
+  .spec .chip{
+    background:#f0f4fa;border:1px solid var(--line);border-radius:9px;
+    padding:8px 16px;min-width:130px;flex:1;
+  }
+  .spec .chip .lbl{font-size:10.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.06em}
+  .spec .chip .val{font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.55}
+  .spec .chip .val.crit{color:var(--red)}
+  .spec .chip .val.warn{color:var(--amber)}
+  .trigger{
+    background:#f7f9fc;border-left:4px solid var(--navy-light);border-radius:0 8px 8px 0;
+    padding:12px 16px;margin:14px 0;font-size:14.5px;
+  }
+  .trigger .t-lbl{font-weight:800;color:var(--navy)}
+  dl.details{margin:14px 0}
+  dl.details div{
+    display:flex;gap:12px;padding:9px 2px;border-bottom:1px dashed var(--line);font-size:14px;
+  }
+  dl.details div:last-child{border-bottom:none}
+  dl.details dt{
+    flex-shrink:0;width:158px;font-weight:700;color:var(--navy-light);font-size:13px;padding-top:1px;
+  }
+  dl.details dd{flex:1;min-width:0}
+  .box{border-radius:10px;padding:13px 18px;margin:14px 0;font-size:14.5px}
+  .box .b-lbl{font-weight:800;display:block;margin-bottom:2px;font-size:13.5px}
+  .box.action{background:var(--green-bg);border:1px solid #cbe2cc}
+  .box.action .b-lbl{color:var(--green)}
+  .box.caution{background:var(--amber-bg);border:1px solid #ecd9a0;font-style:italic}
+  .box.caution .b-lbl{color:#9c6500;font-style:normal}
+
+  /* appendix table */
+  .note{font-size:12.5px;color:var(--ink-soft);font-style:italic}
+
+  /* back to top */
+  #totop{
+    position:fixed;right:26px;bottom:26px;width:44px;height:44px;border-radius:50%;
+    background:var(--navy);color:#fff;border:none;font-size:18px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(31,56,100,.35);opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  #totop.show{opacity:1;pointer-events:auto}
+
+  footer{margin-top:70px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--ink-soft);text-align:center}
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 920px){
+    .wrap{display:block}
+    .sidebar{
+      position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);
+      transition:transform .25s ease;width:280px;
+    }
+    .sidebar.open{transform:translateX(0)}
+    .mobile-bar{
+      display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:40;
+      background:var(--navy);color:#fff;padding:12px 18px;
+    }
+    .mobile-bar button{
+      background:none;border:1px solid rgba(255,255,255,.4);color:#fff;
+      border-radius:6px;font-size:16px;padding:4px 10px;cursor:pointer;
+    }
+    .mobile-bar .t{font-size:14px;font-weight:700}
+    .main{padding:22px 18px 80px}
+    .hero{padding:26px 22px}
+    .hero h1{font-size:21px}
+    .card{padding:22px 18px}
+    dl.details div{flex-direction:column;gap:2px}
+    dl.details dt{width:auto}
+    #overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;display:none}
+    #overlay.show{display:block}
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-bar">
+  <button id="menuBtn" aria-label="メニュー">☰</button>
+  <span class="t">AdAlert 機能ガイド</span>
+</div>
+<div id="overlay"></div>
+
+<div class="wrap">
+
+<!-- ================= SIDEBAR ================= -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-title">
+    <div class="logo">AdAlert</div>
+    <div class="sub">機能ガイド ― 検知アラート仕様書</div>
+  </div>
+  <nav>
+    <div class="sb-group">はじめに</div>
+    <a href="#intro">このドキュメントについて</a>
+    <a href="#terms">この資料での用語</a>
+    <a href="#severity">重要度の見方</a>
+    <a href="#overview">アラート一覧（早見表）</a>
+
+    <div class="sb-group">第1部　基本機能</div>
+    <a href="#p1-accounts">広告アカウント連携（対応媒体）</a>
+    <a href="#p1-plan">配信計画管理（3階層）</a>
+    <a href="#p1-data">データの取り込み（1時間ごと）</a>
+    <a href="#p1-project">案件・予算管理</a>
+    <a href="#p1-notify">通知</a>
+    <a href="#p1-prime">プライム代理店への共有</a>
+    <a href="#p1-workflow">変更依頼のワークフロー</a>
+
+    <div class="sb-group">第2部　検知アラートの仕様</div>
+    <a href="#alert-shinki"><span class="mini warn">注意</span>広告表示異常(新規未表示)</a>
+    <a href="#alert-teishi"><span class="mini crit">重大</span>広告表示異常(停止後表示)</a>
+    <a href="#alert-shinsa"><span class="mini crit">重大</span>広告審査落ち</a>
+    <a href="#alert-hendo-imp"><span class="mini warn">注意</span>効果大幅変動(広告表示)</a>
+    <a href="#alert-hendo-cost"><span class="mini warn">注意</span>効果大幅変動(利用額)</a>
+    <a href="#alert-cv"><span class="mini warn">注意</span>CV未発生</a>
+    <a href="#alert-riyoritsu"><span class="mini crit">重大</span>利用率異常</a>
+    <a href="#alert-yosan"><span class="mini warn">注意</span>予算変更スパイク</a>
+    <a href="#alert-kessai"><span class="mini crit">重大</span>決済エラー</a>
+
+    <div class="sb-group">第3部・第4部</div>
+    <a href="#part3"><span class="mini info">通知</span>事前アラート</a>
+    <a href="#p4-dup">重複の抑制</a>
+    <a href="#p4-resolve">アラートの解決</a>
+
+    <div class="sb-group">付録</div>
+    <a href="#appendix">定期チェックの頻度</a>
+  </nav>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<main class="main">
+<div class="content">
+
+<section id="intro">
+  <div class="hero">
+    <span class="tag">AD ALERT DOCUMENTATION</span>
+    <h1>AdAlert（アドアラート）機能ガイド<br>― 検知アラート仕様書</h1>
+    <p>このドキュメントは、AdAlert が広告配信を <strong style="color:#ffd76a">どう監視し、どんな時にアラートを出すか</strong> を、広告運用の担当者が読んで分かる形でまとめたものです。各アラートの「どういう時に鳴るか」「鳴ったらどうするか」を中心に記載しています。</p>
+  </div>
+</section>
+
+<section id="terms">
+  <h3 class="sec">この資料での用語</h3>
+  <ul class="plain">
+    <li><strong>広告表示</strong>＝インプレッション（広告が表示された回数）。画面上の名称に合わせています。</li>
+    <li><strong>利用額</strong>＝コスト（消化金額）。</li>
+    <li><strong>配信予定（計画）</strong>＝AdAlert 上で設定した配信開始/停止の予定。媒体側の実際の設定とは別に、AdAlert が「正」として持つ計画です。</li>
+    <li><strong>案件</strong>＝複数の広告アカウントを媒体をまたいでまとめた予算管理の単位（fee率・月予算／期間予算を持つ）。</li>
+  </ul>
+</section>
+
+<section id="severity">
+  <h3 class="sec">重要度の見方</h3>
+  <ul class="plain">
+    <li><span class="badge crit">重大</span>　… 配信事故につながる、すぐ確認すべきもの（画面では赤）</li>
+    <li><span class="badge warn">注意</span>　… 想定外の動きなので確認したいもの（画面では黄）</li>
+  </ul>
+</section>
+
+<section id="overview">
+  <h3 class="sec">アラート一覧（早見表）</h3>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>アラート名</th><th>重要度</th><th>出る単位</th><th>ざっくり何を見つける？</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><a href="#alert-shinki">広告表示異常(新規未表示)</a></td><td class="c"><span class="badge warn">注意</span></td><td class="c">広告</td><td>配信中のはずなのに広告表示が出ていない</td></tr>
+      <tr><td><a href="#alert-teishi">広告表示異常(停止後表示)</a></td><td class="c"><span class="badge crit">重大</span></td><td class="c">広告</td><td>停止したはずなのに広告表示が続いている</td></tr>
+      <tr><td><a href="#alert-shinsa">広告審査落ち</a></td><td class="c"><span class="badge crit">重大</span></td><td class="c">広告</td><td>広告が媒体審査に落ちた</td></tr>
+      <tr><td><a href="#alert-hendo-imp">効果大幅変動(広告表示)</a></td><td class="c"><span class="badge warn">注意</span></td><td class="c">広告</td><td>広告表示数が前日同時刻から大きく増減</td></tr>
+      <tr><td><a href="#alert-hendo-cost">効果大幅変動(利用額)</a></td><td class="c"><span class="badge warn">注意</span></td><td class="c">広告</td><td>利用額が前日同時刻から大きく増減</td></tr>
+      <tr><td><a href="#alert-cv">CV未発生</a></td><td class="c"><span class="badge warn">注意</span></td><td class="c">広告</td><td>配信中なのに直近24時間コンバージョンが0</td></tr>
+      <tr><td><a href="#alert-riyoritsu">利用率異常</a></td><td class="c"><span class="badge crit">重大</span></td><td class="c">案件</td><td>月予算の着地予測が目標範囲を外れそう</td></tr>
+      <tr><td><a href="#alert-yosan">予算変更スパイク</a></td><td class="c"><span class="badge warn">注意</span></td><td class="c">キャンペーン</td><td>日予算が媒体側で前回から大きく変えられた</td></tr>
+      <tr><td><a href="#alert-kessai">決済エラー</a></td><td class="c"><span class="badge crit">重大</span></td><td class="c">広告アカウント</td><td>媒体からの決済エラーメールを検知</td></tr>
+      <tr><td><a href="#part3">事前アラート（開始/停止の予定通知）</a></td><td class="c"><span class="badge none">―</span></td><td class="c">広告</td><td>配信開始/停止の予定時刻が近づいたら事前に通知</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============ 第1部 ============ -->
+<h2 class="part" id="part1">第1部　基本機能</h2>
+
+<section id="p1-accounts">
+  <h3 class="sec">広告アカウント連携（対応媒体）</h3>
+  <p>以下の媒体の広告アカウントを連携して、配信状況を取り込みます。</p>
+  <ul class="plain">
+    <li>Google 広告</li>
+    <li>Meta 広告（Facebook / Instagram）</li>
+    <li>LINEヤフー広告 ― <strong>検索広告（リスティング）</strong>と<strong>ディスプレイ広告（YDA）</strong>は別々のアカウント・別々の連携として扱います</li>
+    <li>TikTok 広告</li>
+  </ul>
+  <p>補助的に、決済エラー検知のための <strong>Gmail 監視</strong>、通知先としての <strong>Slack</strong> 連携も利用できます。</p>
+</section>
+
+<section id="p1-plan">
+  <h3 class="sec">配信計画管理（3階層）</h3>
+  <p>キャンペーン／広告グループ（広告セット）／広告 の3階層で、AdAlert 上に <strong>配信の開始・停止予定（計画）</strong> を持てます。媒体側では広告単位の細かい期間設定ができないため、AdAlert が計画を「正」として管理し、計画と実際の配信のズレをアラートで知らせます。上位階層で期間を設定すると配下にも反映できます。</p>
+</section>
+
+<section id="p1-data">
+  <h3 class="sec">データの取り込み（1時間ごと）</h3>
+  <p>各媒体から <strong>1時間ごと</strong> に当日の累積の数値（広告表示・利用額など）を取り込み、前回との差から「その1時間ぶんの実績」を計算して記録します。集計は世界標準時（UTC）の1時間区切りです。この取り込み結果をもとに、各種アラートの判定が動きます。</p>
+</section>
+
+<section id="p1-project">
+  <h3 class="sec">案件（プロジェクト）・予算管理</h3>
+  <p>複数の広告アカウントを媒体をまたいで1つの <strong>案件</strong> にまとめ、fee率（手数料率）と予算を設定できます。予算の持ち方は2種類です。</p>
+  <ul class="plain">
+    <li><strong>月予算</strong>（毎月の予算）</li>
+    <li><strong>期間予算</strong>（開始～終了の期間に対する予算。途中の予算改定にも対応）</li>
+  </ul>
+  <p>この予算に対して着地予測（このままいくと使い切るか／余るか）を見て「利用率異常」を判定します。</p>
+</section>
+
+<section id="p1-notify">
+  <h3 class="sec">通知</h3>
+  <p>アラートは <strong>メール ／ Slack ／ Teams</strong>（Power Automate 経由）で通知できます。通知の <strong>対象範囲（スコープ）</strong> を、会社全体／広告アカウント単位／キャンペーン単位／案件単位 のいずれかで絞り込めます。「この案件のアラートだけこの担当者へ」といった振り分けが可能です。</p>
+</section>
+
+<section id="p1-prime">
+  <h3 class="sec">プライム代理店への共有（監視専門の代理店）</h3>
+  <p>監視専門の代理店（プライム代理店）に、広告アカウント単位でデータを共有できます。プライム代理店は <strong>閲覧のみ</strong> で、広告の直接編集はできません。共有したアカウント配下に後から追加された広告も自動的に共有対象になります。</p>
+</section>
+
+<section id="p1-workflow">
+  <h3 class="sec">変更依頼のワークフロー</h3>
+  <p>配信スケジュールや監視設定の変更を、依頼 → 承認 → 反映 の流れで管理します。</p>
+  <ul class="plain">
+    <li><strong>依頼できる内容</strong>：スケジュール変更／監視設定の変更</li>
+    <li><strong>依頼者</strong>：通常代理店 または プライム代理店（プライムは依頼のみ、承認は通常代理店側）</li>
+    <li><strong>状態</strong>：受付中 → 完了／却下／失敗</li>
+  </ul>
+</section>
+
+<!-- ============ 第2部 ============ -->
+<h2 class="part" id="part2">第2部　検知アラートの仕様</h2>
+<p>各アラートを同じ項目立てで記載します。「どういう時に出るか」「出たらどうするか」を中心に読んでください。</p>
+
+<!-- 1 -->
+<div class="card" id="alert-shinki">
+  <h3 class="alert-name">広告表示異常(新規未表示)</h3>
+  <p class="lead"><em>配信中のはずの広告で広告表示（インプレッション）が出ていない＝「開始したのに表示されていない」反映漏れを見つけます。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val warn">注意</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告（＋キャンペーン・広告グループ）</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：ある1時間の枠で、対象の広告表示の合計が0のとき。ただし上位がすべて配信中（キャンペーン＝配信中／広告グループ＝有効／広告＝停止・削除でない）で、AdAlert 上の配信予定期間内・曜日/時間帯スケジュール内・配信停止期間外であることが条件です。</div>
+  <dl class="details">
+    <div><dt>出る単位のくわしく</dt><dd>キャンペーンは監視オンで自動的に対象。広告グループ・広告は「ゼロ表示監視」を個別にオンにしたものだけが対象。</dd></div>
+    <div><dt>何と比べる</dt><dd>前日比などは見ません。その時間帯に広告表示が0かどうかだけ。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>監視対象で配信予定内の広告。終了日だけ設定した運用・配信停止期間中・配下に広告が無い空の広告グループは対象外。その時間帯のデータが未取り込みなら「0」と見なさず判定を見送ります（同期遅れによる誤検知防止）。</dd></div>
+    <div><dt>媒体の注意</dt><dd>Yahoo検索広告は1時間単位のデータを持たない（日単位）ため、1時間単位のゼロ判定は実質行われません。</dd></div>
+    <div><dt>通知と重複</dt><dd>同じ時間帯につき1回。未対応が残る間は新しく増えません。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません（表示が復帰しても手動で対応済みにするまで残ります）。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>媒体管理画面で配信状態・審査状況・入札/予算を確認。実際に止まっていないか、AdAlert 上の配信予定と媒体側の設定がズレていないかを確認します。</div>
+  <div class="box caution"><span class="b-lbl">気をつけたい点</span>出稿直後や指名などの低ボリューム広告は、たまたまその1時間だけ表示0でも鳴ることがあります（新規・低ボリューム向けの猶予は現状ありません）。</div>
+</div>
+
+<!-- 2 -->
+<div class="card" id="alert-teishi">
+  <h3 class="alert-name">広告表示異常(停止後表示)</h3>
+  <p class="lead"><em>停止したはずの広告で広告表示が続いている＝「止め忘れ・反映漏れ」を見つけます。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val crit">重大</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：AdAlert 上の配信停止予定の時刻から <strong>1時間経過した後</strong> に、その広告の広告表示が1以上あったとき。媒体側のステータス（一時停止など）は見ず、実際に表示が出ているかで判定します。</div>
+  <dl class="details">
+    <div><dt>何と比べる</dt><dd>比較なし。停止予定＋1時間以降に表示があるか。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>監視対象の広告。停止予定（終了日時）が設定されていない広告は対象外（常に鳴りません）。停止予定ちょうどではなく1時間の猶予後から検知します（媒体側の反映遅れを考慮）。</dd></div>
+    <div><dt>媒体の注意</dt><dd>広告自身に停止予定を持たず上位階層から引き継ぐ媒体（Meta／TikTok など）は、上位の予定に依存します。</dd></div>
+    <div><dt>通知と重複</dt><dd>同じ時間帯につき1回。未対応が残る間は増えません。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>媒体管理画面で該当広告を停止し、配信予定どおり止まっているかを確認します。</div>
+</div>
+
+<!-- 3 -->
+<div class="card" id="alert-shinsa">
+  <h3 class="alert-name">広告審査落ち</h3>
+  <p class="lead"><em>広告が媒体の審査に落ちた状態を見つけます。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val crit">重大（配信期間外での検知は一段下げた扱い）</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：各媒体から取り込んだ審査ステータスが「否認（審査落ち）」のとき。</div>
+  <dl class="details">
+    <div><dt>対象になる／ならない</dt><dd>監視対象の広告。個別に「審査落ち通知オフ」にした広告は対象外。</dd></div>
+    <div><dt>媒体の注意（審査落ち理由の取得可否）</dt><dd>Google／Meta／Yahoo（検索・ディスプレイ）は審査落ち理由も取得して表示します。<strong>TikTok は審査落ちは検知できますが、理由テキストは媒体から取得できないため表示されません</strong>（媒体管理画面でご確認ください）。</dd></div>
+    <div><dt>通知と重複</dt><dd>新しく審査落ちになった時に通知。継続中は繰り返し通知しません。</dd></div>
+    <div><dt>解決の扱い</dt><dd><strong>このアラートだけは特別で、広告が再び「承認」に戻ると自動的に解決済みになります</strong>（他のアラートは手動解決のみ）。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>審査落ち理由を確認し、クリエイティブ・リンク先・表現などを修正して再申請します。</div>
+  <div class="box caution"><span class="b-lbl">気をつけたい点</span>媒体から審査ステータスを取得できない状態（API不通など）が続くと、状態が更新されず残る場合があります。</div>
+</div>
+
+<!-- 4 -->
+<div class="card" id="alert-hendo-imp">
+  <h3 class="alert-name">効果大幅変動(広告表示)</h3>
+  <p class="lead"><em>広告表示数が前日の同じ時間帯から大きく増減したのを見つけます。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val warn">注意（変動が大きいほど重要度が上がります）</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：その時間帯の広告表示数を前日同時刻と比べ、<strong>増加なら+100%以上（2倍以上）</strong>、<strong>減少なら-50%以上（半分以下）</strong> で検知します。この基準（％）は会社ごとに変更できます。</div>
+  <dl class="details">
+    <div><dt>何と比べる</dt><dd>前日の同じ時間帯（同時刻の1時間枠）。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>監視対象の広告。前日の同時刻にデータが無い、または前日が0の場合は比較できないため対象外（誤検知・ゼロ割れ防止）。</dd></div>
+    <div><dt>媒体の注意</dt><dd>1時間単位のデータを持たない Yahoo検索広告は実質対象外。</dd></div>
+    <div><dt>通知と重複</dt><dd>同じ時間帯につき1回。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>意図した変化か確認します（予算・入札の変更、審査、季節要因など）。急減している場合は停止や配信不良を疑います。</div>
+</div>
+
+<!-- 5 -->
+<div class="card" id="alert-hendo-cost">
+  <h3 class="alert-name">効果大幅変動(利用額)</h3>
+  <p class="lead"><em>利用額（コスト）が前日の同じ時間帯から大きく増減したのを見つけます。考え方は「効果大幅変動(広告表示)」と同じで、対象が利用額になります。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val warn">注意（変動が大きいほど重要度が上がります）</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：その時間帯の利用額を前日同時刻と比べ、増加なら+100%以上、減少なら-50%以上で検知。基準（％）は会社ごとに変更できます。<strong>前日同時刻の利用額が100円未満のときは対象外</strong>（少額での誤検知を防ぐため。この下限も変更可能）。</div>
+  <dl class="details">
+    <div><dt>何と比べる</dt><dd>前日の同じ時間帯の利用額。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>監視対象の広告。前日同時刻のデータが無い／前日が0または100円未満は対象外。</dd></div>
+    <div><dt>媒体の注意</dt><dd>1時間単位のデータを持たない Yahoo検索広告は実質対象外。</dd></div>
+    <div><dt>通知と重複</dt><dd>同じ時間帯につき1回。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>想定外の消化増減でないかを確認します（予算・入札の変更、配信の停止・不良など）。</div>
+</div>
+
+<!-- 6 -->
+<div class="card" id="alert-cv">
+  <h3 class="alert-name">CV未発生</h3>
+  <p class="lead"><em>配信中なのに直近24時間コンバージョンが0の状態を見つけます。計測不備や配信不良の早期発見に使います。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val warn">注意</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告（＋キャンペーン・広告グループ）</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：直近24時間の実測データでコンバージョン合計が0のとき。ただし <strong>24時間分がきちんと実測データで揃っている場合のみ</strong> 判定します（計測開始直後は判定しません）。</div>
+  <dl class="details">
+    <div><dt>出る単位のくわしく</dt><dd>キャンペーンは自動的に対象（個別にオフも可）。広告グループ・広告は「CV監視」を個別にオンにしたものだけが対象。</dd></div>
+    <div><dt>何と比べる</dt><dd>前日比ではなく、直近24時間のコンバージョン合計。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>監視対象。<strong>計測開始から24時間未満（配信・計測を始めたばかり）は対象外＝実質の猶予期間</strong>。コンバージョンを取り込めていない古いデータは集計に含めません。</dd></div>
+    <div><dt>媒体の注意</dt><dd>全媒体（Yahoo検索は日単位データが2日分たまれば対象になります）。</dd></div>
+    <div><dt>通知と重複</dt><dd>コンバージョンが0のままなら <strong>1日1回</strong> 通知（続く限り毎日）。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>まず計測タグ・コンバージョン設定を確認します（計測が壊れていないか）。次に配信状況・入札を確認します。</div>
+  <div class="box caution"><span class="b-lbl">気をつけたい点</span>そもそもコンバージョンが発生しにくい商材・時間帯では鳴りやすくなります。CV監視をオンにする広告は絞るのが有効です。</div>
+</div>
+
+<!-- 7 -->
+<div class="card" id="alert-riyoritsu">
+  <h3 class="alert-name">利用率異常（予算着地予測）</h3>
+  <p class="lead"><em>案件（プロジェクト）の予算に対し、このままの消化ペースだと着地が目標範囲を外れそうなときに知らせます。「使い切れない／使いすぎ」を事前に察知します。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val crit">重大</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">案件</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1日1回（深夜）</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：現在までの消化額＋今後の想定（配信中キャンペーンの日予算合計 × 残日数）から着地額を見積もり、fee率を加味して「着地利用率」を算出。目標範囲（初期設定は <strong>97〜99%</strong>）を外れると検知します。</div>
+  <dl class="details">
+    <div><dt>判定の目安</dt><dd>90%未満＝大幅未達／90〜97%＝未達／97〜99%＝正常／99〜110%＝超過／110%超＝大幅超過。この範囲は案件ごと・会社ごとに変更できます。</dd></div>
+    <div><dt>何と比べる</dt><dd>案件の予算（月予算 または 期間予算）と、消化ペースからの着地予測。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>予算が設定され、配信中キャンペーンがある案件。予算未設定・0円、期間外の日、fee率が不正な案件は対象外。</dd></div>
+    <div><dt>媒体の注意</dt><dd>媒体を問わず案件配下の全アカウントを合算。円以外のアカウントは円換算して合算し、<strong>換算できなかった分は合計から除く</strong>ため、着地が実態より低めに出ることがあります。</dd></div>
+    <div><dt>通知と重複</dt><dd>1日1回。対応済みにしても、翌日また外れていれば再び未対応として上がってきます。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません（正常域に戻っても手動で対応済みにするまで残ります）。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>未達なら予算増額・配信拡大を、超過なら日予算調整・停止を検討します。</div>
+  <div class="box caution"><span class="b-lbl">気をつけたい点</span>「日予算 × 残日数」の単純な見積もりのため、途中で大きな予算変更や配信ムラがあると予測がぶれます。</div>
+</div>
+
+<!-- 8 -->
+<div class="card" id="alert-yosan">
+  <h3 class="alert-name">予算変更スパイク</h3>
+  <p class="lead"><em>日予算が媒体側で前回から大きく変えられたのを見つけます。意図しない予算変更・設定ミスの発見に使います。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val warn">注意（変更幅が大きいほど重要度が上がります）</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">キャンペーン</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：データ取り込み時に日予算の変化を記録し、<strong>新しい日予算が前回の3倍以上、または1/3以下</strong> になっていたら検知します。倍率は会社ごとに変更できます。極端に小さい予算（1円未満）は対象外。</div>
+  <dl class="details">
+    <div><dt>何と比べる</dt><dd>直前に記録されていた日予算。</dd></div>
+    <div><dt>対象になる／ならない</dt><dd>日予算の変化が取り込めたキャンペーン。</dd></div>
+    <div><dt>媒体の注意</dt><dd>Google／Meta／Yahoo／TikTok。可能な場合は変更者・変更時刻も補足表示します。</dd></div>
+    <div><dt>通知と重複</dt><dd>新しく検知した時に通知。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>意図した変更か確認します。身に覚えがなければ元に戻し、媒体側の操作履歴を確認します。</div>
+</div>
+
+<!-- 9 -->
+<div class="card" id="alert-kessai">
+  <h3 class="alert-name">決済エラー</h3>
+  <p class="lead"><em>媒体からの決済関連メール（残高不足・支払い停止など）を Gmail 監視で見つけます。</em></p>
+  <div class="spec">
+    <div class="chip"><div class="lbl">重要度</div><div class="val crit">重大</div></div>
+    <div class="chip"><div class="lbl">出る単位</div><div class="val">広告アカウント</div></div>
+    <div class="chip"><div class="lbl">チェック</div><div class="val">1時間ごと</div></div>
+  </div>
+  <div class="trigger"><span class="t-lbl">どういう時に出るか</span>：連携した Gmail を監視し、媒体からの決済メールを ①どの媒体か判定 → ②無関係なメールを除外 → ③「警告」か「停止」かを判定 → ④本文や添付から対象アカウントを特定、の順で絞り込み、連携済みアカウントに紐付いたものだけをアラートにします。「警告」段階＝支払い期限が近い等、「停止」段階＝支払い停止・残高0（より重大）。</div>
+  <dl class="details">
+    <div><dt>前提</dt><dd>Gmail 連携が有効で、<strong>決済エラー検知がオンになっていること（初期状態はオフ。利用するには有効化が必要）</strong>。メール内のアカウントが連携済み広告アカウントと一致すること。</dd></div>
+    <div><dt>媒体の注意</dt><dd>Google＝本文のお客様IDで特定／Meta＝明細（添付）で特定／TikTok＝本文の広告主IDで特定（一部の文言は実メール確認後に調整予定）。<strong>Yahoo＝アカウント特定が未対応のため、現状は検知されにくい状態です。</strong></dd></div>
+    <div><dt>通知と重複</dt><dd>同じメール×アカウントでは二重に作りません。1日1回。</dd></div>
+    <div><dt>解決の扱い</dt><dd>自動では消えません。</dd></div>
+  </dl>
+  <div class="box action"><span class="b-lbl">出たらどうする？</span>媒体管理画面で支払い方法・残高・請求状況を確認し、決済を復旧します。</div>
+  <div class="box caution"><span class="b-lbl">気をつけたい点</span>Yahoo は現状ほぼ拾えません。また未知の文面のメールは取りこぼし・誤検知の可能性があります。</div>
+</div>
+
+<!-- ============ 第3部 ============ -->
+<h2 class="part" id="part3">第3部　事前アラート（配信開始/停止の予定通知）</h2>
+<p>異常の検知とは別に、<strong>配信の開始予定・停止予定が近づいたら事前に知らせる</strong> 通知です。「開始し忘れ」「止め忘れ」を未然に防ぎます。</p>
+<ul class="plain">
+  <li><strong>これは何？</strong>：AdAlert 上で設定した配信開始/停止の予定時刻が近づくと、事前に通知します。</li>
+  <li><strong>いつ通知される？</strong>：予定時刻の <strong>10分前</strong> が初期設定です（会社ごとに変更可能）。システムは5分ごとに予定をチェックしています。</li>
+  <li><strong>対象</strong>：広告単位の配信予定。AdAlert 上で配信予定が設定され、監視がオンになっている広告。</li>
+  <li><strong>開始／停止の通知</strong>：開始予定・停止予定それぞれの時刻が近づいたとき。あわせて、設定した「配信停止期間」の開始前・終了前も通知できます。</li>
+  <li><strong>送信の確実さ</strong>：全チャネルで失敗した場合は「送信済み」にせず、次のチェックで再送を試みます。</li>
+</ul>
+
+<!-- ============ 第4部 ============ -->
+<h2 class="part" id="part4">第4部　アラート共通の挙動</h2>
+
+<section id="p4-dup">
+  <h3 class="sec">同じ広告で何度も鳴る？（重複の抑制）</h3>
+  <p>短時間に同じアラートが何度も飛ばないように抑制しています。</p>
+  <ul class="plain">
+    <li>広告表示・利用額など時間単位で見るアラート … <strong>同じ時間帯（1時間のまとまり）につき1回</strong> まで。</li>
+    <li>利用率異常・決済エラー・CV未発生 … <strong>1日につき1回</strong> まで。</li>
+  </ul>
+  <p>複数の監視処理が同時に走っても二重送信されないよう、送信担当を1つに絞る仕組みが入っています。</p>
+</section>
+
+<section id="p4-resolve">
+  <h3 class="sec">アラートの解決（対応済みの扱い）</h3>
+  <p>検知されたアラートは <strong>自動では消えません</strong>。担当者が内容を確認し、手動で「対応済み」にするまで残り続けます（見落とし防止のため）。</p>
+  <ul class="plain">
+    <li>翌日以降も同じ状態が続く場合、同じアラートとして扱われ、再通知は上のルールに従います。</li>
+    <li><strong>例外：広告審査落ち</strong> だけは、広告が再び「承認」状態に戻ると自動的に解決済みになります。</li>
+  </ul>
+</section>
+
+<!-- ============ 付録 ============ -->
+<h2 class="part" id="appendix">付録　定期チェックの頻度</h2>
+<div class="tbl-wrap">
+<table class="tbl">
+  <thead><tr><th>処理</th><th>頻度</th></tr></thead>
+  <tbody>
+    <tr><td>データの取り込み（各媒体の実績）</td><td class="c">1時間ごと</td></tr>
+    <tr><td>異常の監視（広告表示異常など）</td><td class="c">1時間ごと（毎正時）</td></tr>
+    <tr><td>事前アラートのチェック</td><td class="c">5分ごと</td></tr>
+    <tr><td>利用率異常（予算着地予測）</td><td class="c">1日1回（深夜）</td></tr>
+    <tr><td>決済エラーのチェック</td><td class="c">1時間ごと</td></tr>
+    <tr><td>予算変更スパイクのチェック</td><td class="c">1時間ごと</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">※ 具体的な判定ルールと数値は第2部・第3部に記載。頻度は目安であり運用状況により調整されることがあります。</p>
+
+<footer>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書</footer>
+
+</div>
+</main>
+</div>
+
+<button id="totop" aria-label="ページ上部へ">↑</button>
+
+<script>
+  // mobile menu
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  });
+  sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  }));
+
+  // scroll spy
+  const links = [...document.querySelectorAll('.sidebar nav a')];
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const spy = () => {
+    let current = targets[0];
+    const y = window.scrollY + 120;
+    for (const t of targets) { if (t.offsetTop <= y) current = t; }
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + current.id));
+  };
+  window.addEventListener('scroll', spy, { passive: true });
+  spy();
+
+  // back to top
+  const totop = document.getElementById('totop');
+  window.addEventListener('scroll', () => {
+    totop.classList.toggle('show', window.scrollY > 600);
+  }, { passive: true });
+  totop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+</script>
+</body>
+</html>
