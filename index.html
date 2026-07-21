@@ -312,7 +312,7 @@
   <table class="tbl">
     <thead><tr><th>アラート</th><th>ランクの付き方（目安）</th></tr></thead>
     <tbody>
-      <tr><td><a href="#alert-shinki">広告表示異常(新規未表示)</a></td><td>検知の直前までの配信実績で判定。<strong>実績があったのに止まった＝緊急</strong>／中規模＝要確認／<strong>もともとほぼ出ていない（新規・低ボリューム）＝誤検知濃厚</strong>。実績データが未取り込みのときはランクを付けません。</td></tr>
+      <tr><td><a href="#alert-shinki">広告表示異常(新規未表示)</a></td><td>まず<strong>検知後すぐに配信が戻れば（一過性）誤検知濃厚</strong>。戻っていなければ検知直前の配信実績で判定：<strong>実績があったのに止まった＝緊急</strong>／中規模＝要確認／<strong>もともとほぼ出ていない（新規・低ボリューム）＝誤検知濃厚</strong>。（詳しい数値は下記）</td></tr>
       <tr><td><a href="#alert-teishi">広告表示異常(停止後表示)</a></td><td>停止後も続く表示が<strong>まとまっている＝緊急</strong>／少量＝要確認。</td></tr>
       <tr><td><a href="#alert-shinsa">広告審査落ち</a></td><td><span class="badge none">ランク対象外</span>　媒体の事実判定であり、承認に戻れば自動的に解決されるため（緊急度ランクは付けません）。</td></tr>
       <tr><td><a href="#alert-hendo-imp">効果大幅変動(広告表示)</a></td><td>主に<strong>要確認</strong>。表示数が二桁以下など<strong>少量の変動＝誤検知濃厚</strong>（表示数の急変は緊急にはしません）。</td></tr>
@@ -325,6 +325,43 @@
   </table>
   </div>
   <p class="note">※ 数値の目安（利用額1,000円・表示100回・実績1,000回／10回 など）は、実際のデータを見ながら調整する前提の暫定値です。将来的に会社ごとに設定できるようにしていきます。</p>
+
+  <p class="subhead">ランク判定の詳しい条件（数値ルール）</p>
+  <p>各アラートが 1／2／3 のどれになるか、具体的な条件は次のとおりです。<strong>数値はすべて暫定値</strong>で、運用データを見ながら調整します。</p>
+  <dl class="details">
+    <div>
+      <dt>新規未表示（ゼロ表示）</dt>
+      <dd>
+        <strong>①復帰チェック</strong>：検知の後 <strong>6時間以内に表示が10回以上</strong> 出ていれば「配信が戻った（一過性）」とみなし <span class="badge r3">誤検知(3)</span>。<br>
+        <strong>②戻っていなければ</strong>、<strong>検知直前7日間</strong>の表示実績で判定 ―― <strong>1,000回以上</strong> → <span class="badge r1">緊急(1)</span>／<strong>10回以下</strong> → <span class="badge r3">誤検知(3)</span>／その間 → <span class="badge r2">要確認(2)</span>。<br>
+        <span class="note" style="font-style:normal">補足：表示が1回ポツンと出た程度は「戻った」に数えません（6時間で10回以上が必要）。また6時間より後に戻った場合（例：9時間後）は今の設定では拾わず緊急のまま残ります。実績データが未取り込みのときはランクを付けません。</span>
+      </dd>
+    </div>
+    <div>
+      <dt>停止後表示</dt>
+      <dd>停止後に続く表示が <strong>10回以上</strong> → <span class="badge r1">緊急(1)</span>／10回未満 → <span class="badge r2">要確認(2)</span>。実損に直結する型なので誤検知(3)には落としません。</dd>
+    </div>
+    <div>
+      <dt>効果大幅変動（広告表示）</dt>
+      <dd>前日・当日の多い方が <strong>100回未満</strong> → <span class="badge r3">誤検知(3)</span>／<strong>100回以上</strong> → <span class="badge r2">要確認(2)</span>。表示回数の増減はお金が直接動かないため、<strong>緊急(1)にはしません</strong>。</dd>
+    </div>
+    <div>
+      <dt>効果大幅変動（利用額）</dt>
+      <dd><strong>増加 かつ 当日1,000円以上</strong> → <span class="badge r1">緊急(1)</span>（予算が溶けている恐れ）／前日・当日とも <strong>1,000円未満</strong> → <span class="badge r3">誤検知(3)</span>／それ以外（減少・中規模） → <span class="badge r2">要確認(2)</span>。</dd>
+    </div>
+    <div>
+      <dt>利用率異常（予算着地）</dt>
+      <dd>着地予測が <strong>大幅な逸脱（90%未満 または 110%超）</strong> → <span class="badge r1">緊急(1)</span>／軽度の逸脱（90〜97% または 99〜110%） → <span class="badge r2">要確認(2)</span>。目標範囲は案件・会社ごとに変更できます。</dd>
+    </div>
+    <div>
+      <dt>決済エラー</dt>
+      <dd>常に <span class="badge r1">緊急(1)</span>。広告アカウント全体（配下の全配信）に波及するため、警告段階でも緊急として扱います。</dd>
+    </div>
+    <div>
+      <dt>ランク対象外</dt>
+      <dd><strong>広告審査落ち・CV未発生・予算変更スパイク</strong> はランクを付けません（<span class="badge none">対象外</span>）。審査落ちは承認復帰で自動解決、予算変更スパイクは意図確認が本質、CV未発生は今後ランク付けを追加予定です。</dd>
+    </div>
+  </dl>
 
   <p class="subhead">使い方（トリアージ）</p>
   <ul class="plain">
@@ -653,7 +690,7 @@
 </div>
 <p class="note">※ 具体的な判定ルールと数値は第2部・第3部に記載。頻度は目安であり運用状況により調整されることがあります。</p>
 
-<footer>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書<br><span class="note">最終更新：2026-07-21（アラートのランク付け〔対応の優先度〕を追記）</span></footer>
+<footer>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書<br><span class="note">最終更新：2026-07-21（ランク付けの詳しい数値ルール・復帰チェックを追記／審査落ちをランク対象外に変更）</span></footer>
 
 </div>
 </main>
