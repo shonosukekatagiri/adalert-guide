@@ -98,6 +98,23 @@
   .badge.crit{background:var(--red-bg);color:var(--red);border:1px solid #eec3c3}
   .badge.warn{background:var(--amber-bg);color:var(--amber);border:1px solid #ecd9a0}
   .badge.none{background:#eef1f6;color:var(--ink-soft);border:1px solid var(--line)}
+  .badge.r1{background:var(--red-bg);color:var(--red);border:1px solid #eec3c3}
+  .badge.r2{background:var(--amber-bg);color:var(--amber);border:1px solid #ecd9a0}
+  .badge.r3{background:var(--green-bg);color:var(--green);border:1px solid #cbe2cc}
+
+  /* ---------- rank explainer ---------- */
+  .rank-def{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+  .rank-def .rd{display:flex;gap:14px;align-items:flex-start;padding:13px 16px;border-radius:10px;border:1px solid var(--line)}
+  .rank-def .rd.r1{background:var(--red-bg);border-color:#eec3c3}
+  .rank-def .rd.r2{background:var(--amber-bg);border-color:#ecd9a0}
+  .rank-def .rd.r3{background:var(--green-bg);border-color:#cbe2cc}
+  .rank-def .rd .rk{flex-shrink:0;font-weight:800;font-size:12.5px;border-radius:20px;padding:3px 12px;white-space:nowrap;color:#fff}
+  .rank-def .rd.r1 .rk{background:var(--red)}
+  .rank-def .rd.r2 .rk{background:var(--amber)}
+  .rank-def .rd.r3 .rk{background:var(--green)}
+  .rank-def .rd .tx{font-size:14px;line-height:1.75}
+  .rank-def .rd .tx b{color:var(--navy)}
+  .subhead{font-size:14.5px;font-weight:800;color:var(--navy-light);margin:24px 0 6px}
 
   /* ---------- overview table ---------- */
   .tbl-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 2px 10px rgba(31,56,100,.08);margin:18px 0}
@@ -216,6 +233,7 @@
     <a href="#intro">このドキュメントについて</a>
     <a href="#terms">この資料での用語</a>
     <a href="#severity">重要度の見方</a>
+    <a href="#rank">ランクの見方（対応の優先度）</a>
     <a href="#overview">アラート一覧（早見表）</a>
 
     <div class="sb-group">第1部　基本機能</div>
@@ -275,6 +293,44 @@
   <ul class="plain">
     <li><span class="badge crit">重大</span>　… 配信事故につながる、すぐ確認すべきもの（画面では赤）</li>
     <li><span class="badge warn">注意</span>　… 想定外の動きなので確認したいもの（画面では黄）</li>
+  </ul>
+</section>
+
+<section id="rank">
+  <h3 class="sec">ランクの見方（対応の優先度）</h3>
+  <p>アラートは件数が多く、<strong>「対応済みにする作業」そのものが現場の負担</strong>になりがちです。そこで各アラートに、<strong>対応の優先度＝ランク（3段階）</strong> を自動で付け、<strong>「緊急は1件ずつ／誤検知はまとめて対応済み」</strong> と作業を振り分けられるようにしました。</p>
+  <p><strong>重要度</strong>（重大／注意）が「変化の<em>大きさ</em>」を表す従来の区分なのに対し、<strong>ランク</strong>は「今すぐ<em>対応すべきか</em>」を表す優先度です。画面のアラートにはランクが表示されます（例：広告表示が1→5に増えると倍率上は大きく＝重要度は上がりますが、実害が無ければランクは低くなります）。</p>
+
+  <div class="rank-def">
+    <div class="rd r1"><span class="rk">ランク1 緊急</span><span class="tx"><b>放置すると損害が出る／出るべき広告が止まっている。</b>1件ずつ確認して対応します（まとめて閉じない）。</span></div>
+    <div class="rd r2"><span class="rk">ランク2 要確認</span><span class="tx"><b>問題の可能性はあるが、確実な損害とは言い切れないグレー。</b>個別に確認します。</span></div>
+    <div class="rd r3"><span class="rk">ランク3 誤検知濃厚</span><span class="tx"><b>検知はされたがデータ的に問題なし（小さな数字・ロジック上のノイズ）。</b>まとめて対応済みにできます。</span></div>
+  </div>
+
+  <p class="subhead">アラート別のランクの付き方</p>
+  <div class="tbl-wrap">
+  <table class="tbl">
+    <thead><tr><th>アラート</th><th>ランクの付き方（目安）</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#alert-shinki">広告表示異常(新規未表示)</a></td><td>検知の直前までの配信実績で判定。<strong>実績があったのに止まった＝緊急</strong>／中規模＝要確認／<strong>もともとほぼ出ていない（新規・低ボリューム）＝誤検知濃厚</strong>。実績データが未取り込みのときはランクを付けません。</td></tr>
+      <tr><td><a href="#alert-teishi">広告表示異常(停止後表示)</a></td><td>停止後も続く表示が<strong>まとまっている＝緊急</strong>／少量＝要確認。</td></tr>
+      <tr><td><a href="#alert-shinsa">広告審査落ち</a></td><td><strong>配信期間内の審査落ち＝緊急</strong>／期間外＝要確認（承認に戻れば自動解決）。</td></tr>
+      <tr><td><a href="#alert-hendo-imp">効果大幅変動(広告表示)</a></td><td>主に<strong>要確認</strong>。表示数が二桁以下など<strong>少量の変動＝誤検知濃厚</strong>（表示数の急変は緊急にはしません）。</td></tr>
+      <tr><td><a href="#alert-hendo-cost">効果大幅変動(利用額)</a></td><td><strong>利用額が実額で増加（当日おおむね1,000円以上）＝緊急</strong>／少額の変動＝誤検知濃厚／その他＝要確認。</td></tr>
+      <tr><td><a href="#alert-cv">CV未発生</a></td><td><span class="badge none">ランク対象外</span>　現時点ではランクを付けていません。</td></tr>
+      <tr><td><a href="#alert-riyoritsu">利用率異常</a></td><td><strong>大幅な逸脱（大幅未達&lt;90%／大幅超過&gt;110%）＝緊急</strong>／軽度の逸脱＝要確認。</td></tr>
+      <tr><td><a href="#alert-yosan">予算変更スパイク</a></td><td><span class="badge none">ランク対象外</span>　変更が意図的かどうかの「確認」が本質のため。</td></tr>
+      <tr><td><a href="#alert-kessai">決済エラー</a></td><td>原則<strong>すべて緊急</strong>（広告アカウント全体＝配下の全配信に波及するため）。</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">※ 数値の目安（利用額1,000円・表示100回・実績1,000回／10回 など）は、実際のデータを見ながら調整する前提の暫定値です。将来的に会社ごとに設定できるようにしていきます。</p>
+
+  <p class="subhead">使い方（トリアージ）</p>
+  <ul class="plain">
+    <li><strong>ランク3（誤検知濃厚）はまとめて対応済み</strong>：<strong>受信箱</strong>と <strong>効果大幅変動・新規未表示（ゼロ表示）</strong> のページに「誤検知の可能性が高いアラートをまとめて対応済みにする」ボタンがあります。</li>
+    <li><strong>ランクで絞り込み</strong>：<strong>受信箱・効果大幅変動・新規未表示・利用率異常</strong> のページで「すべて／緊急／要確認／誤検知」で絞り込めます。</li>
+    <li><strong>ランク1（緊急）は1件ずつ</strong>：まとめ処理は避け、内容を確認してから対応します。</li>
   </ul>
 </section>
 
@@ -576,6 +632,7 @@
   <ul class="plain">
     <li>翌日以降も同じ状態が続く場合、同じアラートとして扱われ、再通知は上のルールに従います。</li>
     <li><strong>例外：広告審査落ち</strong> だけは、広告が再び「承認」状態に戻ると自動的に解決済みになります。</li>
+    <li><strong>まとめて対応済み（ランク3）</strong>：誤検知の可能性が高いアラートは、受信箱や対象ページから一斉にクローズできます。詳しくは <a href="#rank">ランクの見方（対応の優先度）</a> を参照してください。</li>
   </ul>
 </section>
 
@@ -596,7 +653,7 @@
 </div>
 <p class="note">※ 具体的な判定ルールと数値は第2部・第3部に記載。頻度は目安であり運用状況により調整されることがあります。</p>
 
-<footer>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書</footer>
+<footer>AdAlert（アドアラート）機能ガイド ― 検知アラート仕様書<br><span class="note">最終更新：2026-07-21（アラートのランク付け〔対応の優先度〕を追記）</span></footer>
 
 </div>
 </main>
